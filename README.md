@@ -4,6 +4,7 @@ A modern, web-based dashboard for managing High Performance Computing (HPC) clus
 <img width="1360" height="994" alt="image" src="https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407" />
 
 
+![KamiakGUI-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/739a4263-23c0-4241-982d-639711851d40)
 
 ## Features
 
@@ -85,4 +86,5 @@ un_standalone.bat is included. It automatically handles the copying of assets an
 -   [React](https://react.dev/)
 -   [Tailwind CSS](https://tailwindcss.com/)
 -   [SSH2](https://github.com/mscdex/ssh2) (Backend SSH handling)
+
 
