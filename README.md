@@ -1,6 +1,9 @@
 # HPC Dashboard
 
 A modern, web-based dashboard for managing High Performance Computing (HPC) clusters (specifically designed for Kamiak). This application replaces traditional command-line interactions with a user-friendly graphical interface.
+<img width="1360" height="994" alt="image" src="https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407" />
+
+
 
 ## Features
 
@@ -73,7 +76,8 @@ ode_modules.
 ode server.js
 
 ### Windows Helper Script
-For Windows users, a helper script un_standalone.bat is included. It automatically handles the copying of assets and starting the server.
+For Windows users, a helper script 
+un_standalone.bat is included. It automatically handles the copying of assets and starting the server.
 
 ## Technologies
 
@@ -81,3 +85,4 @@ For Windows users, a helper script un_standalone.bat is included. It automatica
 -   [React](https://react.dev/)
 -   [Tailwind CSS](https://tailwindcss.com/)
 -   [SSH2](https://github.com/mscdex/ssh2) (Backend SSH handling)
+
