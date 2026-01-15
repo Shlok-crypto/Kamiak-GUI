@@ -17,6 +17,11 @@ A modern, web-based dashboard for managing High Performance Computing (HPC) clus
     -   **Job Monitor**: status of active queues and historical jobs.
     -   **Job Cancellation**: Cancel running jobs directly from the UI.
 -   **Web Terminal**: Built-in console for executing quick shell commands.
+-   **LLM Integration**:
+    -   **One-Click Deployment**: Automatically configures the remote environment ($HOME/llm), creates a virtual environment, and installs dependencies.
+    -   **GPU Acceleration**: Allocates GPU resources (Kamiak) for high-performance inference.
+    -   **Secure Tunneling**: Establishes a secure SSH tunnel to forward the remote LLM server to your local machine.
+    -   **Chat Interface**: User-friendly chat UI to interact with models like Llama-3-8B.
 -   
 ![KamiakGUI-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/739a4263-23c0-4241-982d-639711851d40)
 ## Prerequisites
@@ -85,6 +90,7 @@ un_standalone.bat is included. It automatically handles the copying of assets an
 -   [React](https://react.dev/)
 -   [Tailwind CSS](https://tailwindcss.com/)
 -   [SSH2](https://github.com/mscdex/ssh2) (Backend SSH handling)
+
 
 
 
