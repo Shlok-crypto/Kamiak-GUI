@@ -1,7 +1,8 @@
 # HPC Dashboard
 
 A modern, web-based dashboard for managing High Performance Computing (HPC) clusters (specifically designed for Kamiak). This application replaces traditional command-line interactions with a user-friendly graphical interface.
-<img width="1360" height="994" alt="image" src="https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407" />
+<img width="1077" height="480" alt="image" src="https://github.com/user-attachments/assets/d8d15b7b-50a1-4ef0-af04-f662cd5ae221" />
+
 
 
 ## Features
@@ -23,7 +24,6 @@ A modern, web-based dashboard for managing High Performance Computing (HPC) clus
     -   **Secure Tunneling**: Establishes a secure SSH tunnel to forward the remote LLM server to your local machine.
     -   **Chat Interface**: User-friendly chat UI to interact with models like Llama-3-8B.
 -   
-![KamiakGUI-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/739a4263-23c0-4241-982d-639711851d40)
 ## Prerequisites
 
 -   Node.js 18+
@@ -90,6 +90,7 @@ un_standalone.bat is included. It automatically handles the copying of assets an
 -   [React](https://react.dev/)
 -   [Tailwind CSS](https://tailwindcss.com/)
 -   [SSH2](https://github.com/mscdex/ssh2) (Backend SSH handling)
+
 
 
 
