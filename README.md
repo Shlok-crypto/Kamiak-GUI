@@ -1,97 +1,112 @@
-# HPC Dashboard
+# ?? HPC Dashboard
 
-A modern, web-based dashboard for managing High Performance Computing (HPC) clusters (specifically designed for Kamiak). This application replaces traditional command-line interactions with a user-friendly graphical interface.
-<img width="1360" height="994" alt="image" src="https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407" />
+<div align="center">
 
+![Kamiak GUI](https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407)
 
-## Features
+**A modern, web-based interface for the Kamiak HPC Cluster.**  
+Replaces complex command-line interactions with an intuitive, powerful graphical dashboard.
 
--   **Dashboard & Auth**: Secure SSH-based login and cluster status overview.
--   **File Manager**:
-    -   Browse remote directories.
-    -   View and edit files (with syntax highlighting).
-    -   Create path-based navigation.
-    -   **File Deletion** (with safety prompts).
--   **Job Management**:
-    -   **Job Composer**: UI-based Slurm script generator (Standard & GPU templates).
-    -   **Job Monitor**: status of active queues and historical jobs.
-    -   **Job Cancellation**: Cancel running jobs directly from the UI.
--   **Web Terminal**: Built-in console for executing quick shell commands.
--   **LLM Integration**:
-    -   **One-Click Deployment**: Automatically configures the remote environment ($HOME/llm), creates a virtual environment, and installs dependencies.
-    -   **GPU Acceleration**: Allocates GPU resources (Kamiak) for high-performance inference.
-    -   **Secure Tunneling**: Establishes a secure SSH tunnel to forward the remote LLM server to your local machine.
-    -   **Chat Interface**: User-friendly chat UI to interact with models like Llama-3-8B.
--   
-![KamiakGUI-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/739a4263-23c0-4241-982d-639711851d40)
-## Prerequisites
+[Features](#-key-features) • [Installation](#-installation) • [LLM Integration](#-llm-integration) • [Tech Stack](#-technology-stack)
 
--   Node.js 18+
--   Access to an HPC cluster (via SSH)
+</div>
 
-## Installation
+---
 
-1.  Clone the repository:
-    `
+## ? Key Features
+
+### ??? Cluster Management
+*   **Secure Auth**: SSH-based login with password or private key support.
+*   **File Manager**: deeply integrated file browsing, editing (code/syntax highlighting), and safe deletion.
+*   **Web Terminal**: Instant access to a remote shell for quick commands.
+
+### ? Job Orchestration (Slurm)
+*   **Visual Job Composer**: Create SBATCH scripts using templates (Standard/GPU) without memorizing flags.
+*   **Live Monitoring**: Real-time view of active queues (`squeue`) and historical jobs (`sacct`).
+*   **Control**: Cancel running jobs instantly with one click.
+
+### ?? LLM Studio (New!)
+Turn your HPC allocation into a private AI playground.
+*   **One-Click Server**: Deploys a Flask-based LLM server on a GPU node automatically.
+*   **Custom Models**: Run Llama 3, Mistral, Gemma 7B, and more.
+*   **RAG / Context**: Upload documents (`.pdf`, `.docx`, `.txt`) to chat with your data.
+*   **Markdown Chat**: Rich text formatting for code blocks, tables, and lists.
+*   **Manage Models**: View and delete cached HuggingFace models to save disk space.
+
+---
+
+## ??? Installation
+
+### Prerequisites
+*   **Node.js 18+**
+*   Access to an HPC cluster (via SSH)
+
+### Quick Start
+
+1.  **Clone the Repo**
+    ```bash
     git clone <repository-url>
     cd <repository-directory>
-    `
+    ```
 
-2.  Install dependencies:
-    `
+2.  **Install Dependencies**
+    ```bash
     npm install
-    `
+    ```
 
-## Development
+3.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) to launch.
 
-To run the development server:
+---
 
-`
-npm run dev
-`
+## ?? LLM Integration Guide
 
-Open [http://localhost:3000](http://localhost:3000) with your browser.
+The **LLM Tab** provides a complete interface for running local LLMs on the cluster.
 
-## Production Build
+### 1. Start Server
+Select your desired model (e.g., `meta-llama/Meta-Llama-3-8B`) and click **Start LLM Server**.
+*   *What happens?* An SBATCH job is submitted to allocate a GPU node. Once running, an SSH tunnel is automatically established to your local machine.
 
-### Standard Build
-To build the application for production:
+### 2. Chat & RAG
+*   **Chat**: Interact naturally with the model.
+*   **Upload Context**: Click the ?? icon to upload PDFs or text files. The model will use this content to answer your questions.
+*   **Clear Chat**: Use the "Clear Chat / Reset Context" button to wipe history and forget uploaded files.
 
-`
-npm run build
-npm start
-`
+### 3. Manage Cache
+Navigate to the **Manage LLMs** sub-tab to view models stored in `$HOME/.cache/huggingface/hub`. You can delete old models here to free up your user quota.
 
-### Standalone Build (Recommended for Deployment)
-This project is configured to produce a standalone build, which creates a self-contained folder that does not require 
-ode_modules.
+---
 
-1.  Build the project:
-    `
+## ?? Deployment (Standalone)
+
+For production deployment without `node_modules` dependency hell:
+
+1.  **Build**
+    ```bash
     npm run build
-    `
+    ```
+2.  **Deploy**
+    Copy the `.next/standalone` folder to your server.
+    *   *Note*: Ensure you also copy `.next/static` -> `.next/standalone/.next/static` and `public` -> `.next/standalone/public`.
 
-2.  The standalone build is located in .next/standalone.
+3.  **Run**
+    ```bash
+    node server.js
+    ```
 
-3.  **Deployment Steps**:
-    -   Copy the .next/standalone folder to your server.
-    -   **Important**: Copy .next/static to .next/standalone/.next/static.
-    -   **Important**: Copy public to .next/standalone/public.
-    -   Run the server: 
-ode server.js
+---
 
-### Windows Helper Script
-For Windows users, a helper script 
-un_standalone.bat is included. It automatically handles the copying of assets and starting the server.
+## ?? Technology Stack
 
-## Technologies
+*   **Frontend**: [Next.js 16](https://nextjs.org/) (App Router), [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/)
+*   **Backend Ops**: SSH2 (Node.js), Slurm Workload Manager
+*   **AI Backend**: Python, Flask, HuggingFace Transformers, PyTorch
 
--   [Next.js 16](https://nextjs.org/) (App Router)
--   [React](https://react.dev/)
--   [Tailwind CSS](https://tailwindcss.com/)
--   [SSH2](https://github.com/mscdex/ssh2) (Backend SSH handling)
+---
 
-
-
-
-
+<div align="center">
+  <sub>Built for the Kamiak Cluster</sub>
+</div>
