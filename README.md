@@ -1,31 +1,32 @@
-# ?? HPC Dashboard
+# 🚀 HPC Dashboard
 
 <div align="center">
 
-![Kamiak GUI](https://github.com/user-attachments/assets/da810c82-e3fe-4868-8704-f651042f5407)
+<img width="1077" height="480" alt="image" src="https://github.com/user-attachments/assets/5f6c0d2e-28ab-42e2-a141-35df0b201e1e" />
+
 
 **A modern, web-based interface for the Kamiak HPC Cluster.**  
 Replaces complex command-line interactions with an intuitive, powerful graphical dashboard.
 
-[Features](#-key-features) � [Installation](#-installation) � [LLM Integration](#-llm-integration) � [Tech Stack](#-technology-stack)
+[Features](#-key-features) • [Installation](#-installation) • [LLM Integration](#-llm-integration) • [Tech Stack](#-technology-stack)
 
 </div>
 
 ---
 
-## ? Key Features
+## ✨ Key Features
 
-### ??? Cluster Management
+### 🖥️ Cluster Management
 *   **Secure Auth**: SSH-based login with password or private key support.
 *   **File Manager**: deeply integrated file browsing, editing (code/syntax highlighting), and safe deletion.
 *   **Web Terminal**: Instant access to a remote shell for quick commands.
 
-### ? Job Orchestration (Slurm)
+### ⚡ Job Orchestration (Slurm)
 *   **Visual Job Composer**: Create SBATCH scripts using templates (Standard/GPU) without memorizing flags.
 *   **Live Monitoring**: Real-time view of active queues (`squeue`) and historical jobs (`sacct`).
 *   **Control**: Cancel running jobs instantly with one click.
 
-### ?? LLM Studio (New!)
+### 🤖 LLM Studio (New!)
 Turn your HPC allocation into a private AI playground.
 *   **One-Click Server**: Deploys a Flask-based LLM server on a GPU node automatically.
 *   **Custom Models**: Run Llama 3, Mistral, Gemma 7B, and more.
@@ -35,7 +36,7 @@ Turn your HPC allocation into a private AI playground.
 
 ---
 
-## ??? Installation
+## 🛠️ Installation
 
 ### Prerequisites
 *   **Node.js 18+**
@@ -62,7 +63,7 @@ Turn your HPC allocation into a private AI playground.
 
 ---
 
-## ?? LLM Integration Guide
+## 🧠 LLM Integration Guide
 
 The **LLM Tab** provides a complete interface for running local LLMs on the cluster.
 
@@ -80,7 +81,7 @@ Navigate to the **Manage LLMs** sub-tab to view models stored in `$HOME/.cache/h
 
 ---
 
-## ?? Deployment (Standalone)
+## 📦 Deployment (Standalone)
 
 For production deployment without `node_modules` dependency hell:
 
@@ -99,7 +100,7 @@ For production deployment without `node_modules` dependency hell:
 
 ---
 
-## ?? Technology Stack
+## 💻 Technology Stack
 
 *   **Frontend**: [Next.js 16](https://nextjs.org/) (App Router), [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/)
 *   **Backend Ops**: SSH2 (Node.js), Slurm Workload Manager
@@ -110,3 +111,4 @@ For production deployment without `node_modules` dependency hell:
 <div align="center">
   <sub>Built for the Kamiak Cluster</sub>
 </div>
+
