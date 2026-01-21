@@ -6,7 +6,7 @@
 
 
 **A modern, web-based interface for the Kamiak HPC Cluster.**  
-Replaces complex command-line interactions with an intuitive, powerful graphical dashboard.
+Replaces  command-line interactions with a dashboard.
 
 [Features](#-key-features) • [Installation](#-installation) • [LLM Integration](#-llm-integration) • [Tech Stack](#-technology-stack)
 
@@ -33,6 +33,9 @@ Turn your HPC allocation into a private AI playground.
 *   **RAG / Context**: Upload documents (`.pdf`, `.docx`, `.txt`) to chat with your data.
 *   **Markdown Chat**: Rich text formatting for code blocks, tables, and lists.
 *   **Manage Models**: View and delete cached HuggingFace models to save disk space.
+
+---
+https://github.com/user-attachments/assets/aefeb9b5-d653-4b43-8fcb-be5b7f99b37b
 
 ---
 
@@ -69,11 +72,11 @@ The **LLM Tab** provides a complete interface for running local LLMs on the clus
 
 ### 1. Start Server
 Select your desired model (e.g., `meta-llama/Meta-Llama-3-8B`) and click **Start LLM Server**.
-*   *What happens?* An SBATCH job is submitted to allocate a GPU node. Once running, an SSH tunnel is automatically established to your local machine.
+*   An `SBATCH` job is submitted to allocate a GPU node. Once running, an SSH tunnel is automatically established to your local machine.
 
 ### 2. Chat & RAG
 *   **Chat**: Interact naturally with the model.
-*   **Upload Context**: Click the ?? icon to upload PDFs or text files. The model will use this content to answer your questions.
+*   **Upload Context**: Click the `+` icon to upload file (PDFs or word files). The model will use this content to answer your questions.
 *   **Clear Chat**: Use the "Clear Chat / Reset Context" button to wipe history and forget uploaded files.
 
 ### 3. Manage Cache
@@ -82,8 +85,11 @@ Navigate to the **Manage LLMs** sub-tab to view models stored in `$HOME/.cache/h
 ---
 
 ## 📦 Deployment (Standalone)
+### Windows Helper Script
+For Windows users, a helper script `run_standalone.bat` is included. It automatically handles the copying of assets and starting the server.
 
-For production deployment without `node_modules` dependency hell:
+### Manually
+For production deployment without `node_modules` dependency :
 
 1.  **Build**
     ```bash
@@ -111,4 +117,5 @@ For production deployment without `node_modules` dependency hell:
 <div align="center">
   <sub>Built for the Kamiak Cluster</sub>
 </div>
+
 
