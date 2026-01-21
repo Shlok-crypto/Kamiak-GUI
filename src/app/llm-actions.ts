@@ -4,10 +4,25 @@ import { SSHCredentials, executeCommand } from '../lib/ssh';
 import { spawn as spawnProc } from 'child_process';
 import path from 'path';
 
+// Keep track of tunnel in global scope
 let tunnelProcess: any = null;
 
-export async function submitLLMJob(credentials: SSHCredentials) {
+// Helper for model validation
+const ALLOWED_MODELS = [
+    'meta-llama/Meta-Llama-3-8B-Instruct',
+    'mistralai/Mistral-7B-Instruct-v0.2',
+    'google/gemma-7b-it',
+    'google/gemma-3-1b-it'
+];
+
+const CACHE_DIR = "$HOME/.cache/huggingface/hub";
+
+export async function submitLLMJob(credentials: SSHCredentials, modelId: string = 'meta-llama/Meta-Llama-3-8B-Instruct') {
     try {
+        if (!ALLOWED_MODELS.includes(modelId)) {
+            throw new Error('Invalid model selection');
+        }
+
         const sbatchScript = `#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -30,9 +45,6 @@ if [ ! -d "$BASE_DIR" ]; then
 fi
 cd "$BASE_DIR"
 
-# Clean up potentially broken environment
-
-
 if [ ! -f "requirements.txt" ]; then
     echo "Creating requirements.txt..."
     cat << 'REQEOF' > requirements.txt
@@ -42,6 +54,9 @@ torch
 transformers
 accelerate
 numpy<2.0
+pypdf
+python-docx
+werkzeug
 REQEOF
 fi
 
@@ -49,15 +64,20 @@ echo "Creating/Overwriting app.py..."
 cat << 'APPEOF' > app.py
 import argparse
 import torch
+import os
+from werkzeug.utils import secure_filename
+import pypdf
+from docx import Document
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-HF_MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
+HF_MODEL_ID = "${modelId}"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 llm = None
 tokenizer = None
+uploaded_context = ""
 
 def initialize_llm():
     global llm, tokenizer
@@ -90,8 +110,53 @@ def health():
     return jsonify({
         "status": "ok",
         "model_loaded": llm is not None,
-        "device": DEVICE
+        "device": DEVICE,
+        "context_length": len(uploaded_context)
     })
+
+@app.route("/reset", methods=["POST"])
+def reset_context():
+    global uploaded_context
+    uploaded_context = ""
+    return jsonify({"message": "Context reset"})
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    global uploaded_context
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+    
+    filename = secure_filename(file.filename)
+    text = ""
+    
+    try:
+        if filename.endswith(".pdf"):
+            pdf_reader = pypdf.PdfReader(file)
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\\n"
+        elif filename.endswith(".docx"):
+            doc = Document(file)
+            for para in doc.paragraphs:
+                text += para.text + "\\n"
+        elif filename.endswith(".txt"):
+            text = file.read().decode("utf-8")
+        else:
+            return jsonify({"error": "Unsupported file type"}), 400
+            
+        # Context Window Safety (Simple truncation)
+        MAX_CONTEXT = 16000 
+        if len(text) > MAX_CONTEXT:
+            text = text[:MAX_CONTEXT] + "\\n[Truncated]..."
+            
+        uploaded_context = f"Context from {filename}:\\n{text}\\n\\n"
+        return jsonify({"message": f"File processed. {len(text)} chars added to context."})
+        
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/query", methods=["POST"])
 def query():
@@ -101,8 +166,13 @@ def query():
     if not data or "query" not in data:
         return jsonify({"error": "Missing 'query'"}), 400
     user_query = data["query"]
+    
+    system_content = "You are a helpful assistant."
+    if uploaded_context:
+        system_content += f"\\n\\nUse the following context to answer the user's question if relevant:\\n{uploaded_context}"
+
     messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "system", "content": system_content},
         {"role": "user", "content": user_query},
     ]
     try:
@@ -129,15 +199,11 @@ APPEOF
 
 VENV_DIR="venv"
 if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating virtual environment at $BASE_DIR/$VENV_DIR..."
+    echo "Creating virtual environment..."
     python3 -m venv "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
-    
-    if [ -f "requirements.txt" ]; then
-        echo "Installing dependencies..."
-        pip install -r requirements.txt
-    fi
+    pip install -r requirements.txt
 else
     source "$VENV_DIR/bin/activate"
 fi
@@ -199,7 +265,6 @@ export async function startTunnelAction(credentials: SSHCredentials, nodeName: s
         return { success: true, message: 'Tunnel already running' };
     }
 
-    // Obfuscated path for Turbopack bypass
     const segments = ['public', 'tunnel_script.js'];
     const scriptPath = path.resolve(process.cwd(), ...segments);
 
@@ -209,7 +274,8 @@ export async function startTunnelAction(credentials: SSHCredentials, nodeName: s
                 scriptPath,
                 credentials.host,
                 credentials.username,
-                credentials.password || '',
+                credentials.password || 'null',
+                credentials.privateKey || 'null',
                 nodeName,
                 '5000',
                 '5000'
@@ -270,6 +336,68 @@ export async function queryLLM(message: string) {
     }
 }
 
+export async function resetLLMContext() {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/reset', {
+            method: 'POST',
+        });
+        if (!response.ok) {
+            throw new Error('Failed to reset backend context');
+        }
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
 
+export async function listCachedModels(credentials: SSHCredentials) {
+    try {
+        const command = `ls -d ${CACHE_DIR}/models--* 2>/dev/null`;
+        const result = await executeCommand(credentials, command);
 
+        if (result.code !== 0) {
+             return { success: true, models: [] };
+        }
 
+        const rawPaths = result.stdout.trim().split('\n').filter(p => p.trim());
+        const models = [];
+
+        for (const p of rawPaths) {
+            const folderName = path.basename(p); 
+            const parts = folderName.split('--');
+            if (parts.length >= 3) {
+                 const org = parts[1];
+                 const name = parts.slice(2).join('-');
+                 const displayName = `${org}/${name}`;
+
+                 const sizeRes = await executeCommand(credentials, `du -sh "${p}" | cut -f1`);
+                 const size = sizeRes.stdout.trim();
+
+                 models.push({ id: folderName, name: displayName, size, path: p });
+            }
+        }
+
+        return { success: true, models };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+export async function deleteCachedModel(credentials: SSHCredentials, folderPath: string) {
+    try {
+        if (!folderPath.includes('models--')) {
+            throw new Error('Invalid model path selection');
+        }
+        
+        const command = `rm -rf "${folderPath}"`;
+        const result = await executeCommand(credentials, command);
+
+        if (result.code !== 0) {
+             throw new Error(result.stderr || 'Failed to delete model');
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
