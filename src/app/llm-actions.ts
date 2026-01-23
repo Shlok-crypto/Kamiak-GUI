@@ -93,7 +93,7 @@ def initialize_llm():
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=256,
+            max_new_tokens=512,
             temperature=0.7,
             top_p=0.9,
             repetition_penalty=1.1,
@@ -167,7 +167,10 @@ def query():
         return jsonify({"error": "Missing 'query'"}), 400
     user_query = data["query"]
     
-    system_content = "You are a helpful assistant."
+    custom_instruction = data.get("system_instruction")
+    base_instruction = custom_instruction if custom_instruction else "You are a helpful assistant."
+    
+    system_content = base_instruction
     if uploaded_context:
         system_content += f"\\n\\nUse the following context to answer the user's question if relevant:\\n{uploaded_context}"
 
@@ -318,12 +321,12 @@ export async function stopTunnelAction() {
     return { success: true };
 }
 
-export async function queryLLM(message: string) {
+export async function queryLLM(message: string, systemInstruction?: string) {
     try {
         const response = await fetch('http://127.0.0.1:5000/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: message })
+            body: JSON.stringify({ query: message, system_instruction: systemInstruction })
         });
 
         if (!response.ok) {
@@ -356,24 +359,24 @@ export async function listCachedModels(credentials: SSHCredentials) {
         const result = await executeCommand(credentials, command);
 
         if (result.code !== 0) {
-             return { success: true, models: [] };
+            return { success: true, models: [] };
         }
 
         const rawPaths = result.stdout.trim().split('\n').filter(p => p.trim());
         const models = [];
 
         for (const p of rawPaths) {
-            const folderName = path.basename(p); 
+            const folderName = path.basename(p);
             const parts = folderName.split('--');
             if (parts.length >= 3) {
-                 const org = parts[1];
-                 const name = parts.slice(2).join('-');
-                 const displayName = `${org}/${name}`;
+                const org = parts[1];
+                const name = parts.slice(2).join('-');
+                const displayName = `${org}/${name}`;
 
-                 const sizeRes = await executeCommand(credentials, `du -sh "${p}" | cut -f1`);
-                 const size = sizeRes.stdout.trim();
+                const sizeRes = await executeCommand(credentials, `du -sh "${p}" | cut -f1`);
+                const size = sizeRes.stdout.trim();
 
-                 models.push({ id: folderName, name: displayName, size, path: p });
+                models.push({ id: folderName, name: displayName, size, path: p });
             }
         }
 
@@ -388,15 +391,142 @@ export async function deleteCachedModel(credentials: SSHCredentials, folderPath:
         if (!folderPath.includes('models--')) {
             throw new Error('Invalid model path selection');
         }
-        
+
         const command = `rm -rf "${folderPath}"`;
         const result = await executeCommand(credentials, command);
 
         if (result.code !== 0) {
-             throw new Error(result.stderr || 'Failed to delete model');
+            throw new Error(result.stderr || 'Failed to delete model');
         }
 
         return { success: true };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+const GEMS_FILE = "$HOME/llm/gems.json";
+
+export interface Gem {
+    id: string;
+    name: string;
+    description: string;
+    instructions: string;
+    created_at: number;
+}
+
+export async function listGems(credentials: SSHCredentials) {
+    try {
+        const command = `cat ${GEMS_FILE} 2>/dev/null`;
+        const result = await executeCommand(credentials, command);
+
+        if (result.code !== 0) {
+            return { success: true, gems: [] }; // File likely doesn't exist yet
+        }
+
+        try {
+            const gems = JSON.parse(result.stdout);
+            return { success: true, gems };
+        } catch (e) {
+            return { success: true, gems: [] }; // Corrupt file, return empty
+        }
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+export async function saveGem(credentials: SSHCredentials, gem: Gem) {
+    try {
+        // Read existing
+        const listRes = await listGems(credentials);
+        let gems: Gem[] = listRes.success && listRes.gems ? listRes.gems : [];
+
+        // Update or Append
+        const index = gems.findIndex(g => g.id === gem.id);
+        if (index >= 0) {
+            gems[index] = gem;
+        } else {
+            gems.push(gem);
+        }
+
+        // Write back
+        // Create temp file securely then mv? Simple echo should suffice for now.
+        // We need to escape single quotes in the JSON string for the bash command
+        const jsonStr = JSON.stringify(gems).replace(/'/g, "'\\''");
+        const command = `echo '${jsonStr}' > ${GEMS_FILE}`;
+
+        const result = await executeCommand(credentials, command);
+        if (result.code !== 0) {
+            throw new Error(result.stderr || 'Failed to save gem');
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+export async function deleteGem(credentials: SSHCredentials, gemId: string) {
+    try {
+        const listRes = await listGems(credentials);
+        let gems: Gem[] = listRes.success && listRes.gems ? listRes.gems : [];
+
+        const newGems = gems.filter(g => g.id !== gemId);
+
+        const jsonStr = JSON.stringify(newGems).replace(/'/g, "'\\''");
+        const command = `echo '${jsonStr}' > ${GEMS_FILE}`;
+
+        const result = await executeCommand(credentials, command);
+        if (result.code !== 0) {
+            throw new Error(result.stderr || 'Failed to delete gem');
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+// Default Gems
+const DEFAULT_GEMS: Gem[] = [
+    {
+        id: 'default-coding',
+        name: 'Coding Wizard',
+        description: 'An expert full-stack developer helper for writing clean, efficient code.',
+        instructions: 'You are an expert software engineer and architect. Focus on clean, maintainable code, best practices, and performance. Explain your reasoning clearly. When asked to write code, provide production-ready solutions.',
+        created_at: Date.now()
+    },
+    {
+        id: 'default-learning',
+        name: 'Learning Coach',
+        description: 'A Socratic tutor that helps you master complex topics.',
+        instructions: 'You are a patient and knowledgeable tutor. Do not give the answer immediately. Instead, guide the user to the solution through leading questions and analogies. Break down complex topics into digestible chunks.',
+        created_at: Date.now()
+    },
+    {
+        id: 'default-research',
+        name: 'Deep Researcher',
+        description: 'A thorough researcher for deep-diving into academic and technical topics.',
+        instructions: 'You are a meticulous researcher. Your goal is to provide comprehensive, well-structured, and fact-based answers. Analyze the topic from multiple angles, cite potential sources or logical deductions, and avoid superficial explanations.',
+        created_at: Date.now()
+    }
+];
+
+export async function ensureLLMEnvironment(credentials: SSHCredentials) {
+    try {
+        // 1. Create base directory
+        await executeCommand(credentials, `mkdir -p "$HOME/llm"`);
+
+        // 2. Check and Create gems.json if missing
+        const checkRes = await executeCommand(credentials, `ls ${GEMS_FILE} 2>/dev/null`);
+        if (checkRes.code !== 0) {
+            console.log("Seeding gems.json...");
+            const jsonStr = JSON.stringify(DEFAULT_GEMS).replace(/'/g, "'\\''");
+            await executeCommand(credentials, `echo '${jsonStr}' > ${GEMS_FILE}`);
+            return { success: true, seeded: true };
+        }
+
+        return { success: true, seeded: false };
     } catch (error) {
         return { success: false, error: (error as Error).message };
     }

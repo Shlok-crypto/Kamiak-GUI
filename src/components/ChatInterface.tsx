@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 
 interface ChatInterfaceProps {
     onQuery: (msg: string) => Promise<any>;
-    onReset?: () => Promise<void>;
+    onReset?: () => Promise<any>;
 }
 
 export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) {
@@ -15,12 +15,21 @@ export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) 
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleReset = async () => {
         if (!confirm('Start a new chat? This will clear the current history and uploaded files.')) return;
         setMessages([]);
         if (onReset) {
             await onReset();
+        }
+    };
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
         }
     };
 
@@ -58,6 +67,9 @@ export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) 
         const userMsg = input;
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setInput('');
+        if (textareaRef.current) {
+             textareaRef.current.style.height = 'auto';
+        }
         setLoading(true);
 
         try {
@@ -120,7 +132,7 @@ export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) 
                     </div>
                 )}
             </div>
-            <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex space-x-2">
+            <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex space-x-2 items-end">
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -135,13 +147,19 @@ export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) 
                 >
                     {uploading ? "..." : "+"}
                 </button>
-                <input
-                    type="text"
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    onChange={handleInput}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                        }
+                    }}
                     placeholder="Type your message..."
-                    className="flex-1 bg-white border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-crimson text-gray-900"
+                    className="flex-1 bg-white border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-crimson text-gray-900 resize-none overflow-hidden min-h-[40px] max-h-[200px]"
                     disabled={loading}
                 />
                 <button
@@ -155,3 +173,5 @@ export default function ChatInterface({ onQuery, onReset }: ChatInterfaceProps) 
         </div>
     );
 }
+
+

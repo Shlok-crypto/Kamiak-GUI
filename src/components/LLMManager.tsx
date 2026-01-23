@@ -1,35 +1,53 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Gem } from '../app/llm-actions';
+import GemManager from './GemManager';
 import { submitLLMJob, checkLLMJobStatus, startTunnelAction, stopTunnelAction, queryLLM, resetLLMContext, listCachedModels, deleteCachedModel } from '../app/llm-actions';
 import ChatInterface from './ChatInterface';
 
 interface LLMManagerProps {
     credentials: { host: string; username: string; password?: string };
+    currentView: 'server' | 'manage' | 'gems';
+    onViewChange: (view: 'server' | 'manage' | 'gems') => void;
+    initialGems: Gem[];
+    initialModels: { id: string, name: string, size: string, path: string }[];
+    onRefresh: () => Promise<void>;
 }
 
-export default function LLMManager({ credentials }: LLMManagerProps) {
-    const [view, setView] = useState<'server' | 'manage'>('server');
+export default function LLMManager({ credentials, currentView, onViewChange, initialGems, initialModels, onRefresh }: LLMManagerProps) {
+    // Controlled view state provided by parent
     const [status, setStatus] = useState<'idle' | 'submitting' | 'queued' | 'starting_tunnel' | 'ready' | 'error'>('idle');
     const [selectedModel, setSelectedModel] = useState('meta-llama/Meta-Llama-3-8B-Instruct');
     const [jobId, setJobId] = useState<string | null>(null);
     const [node, setNode] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
-    
+
     // Manage Tab State
-    const [cachedModels, setCachedModels] = useState<{ id: string, name: string, size: string, path: string }[]>([]);
+    const [cachedModels, setCachedModels] = useState(initialModels);
+    useEffect(() => { setCachedModels(initialModels); }, [initialModels]);
     const [loadingModels, setLoadingModels] = useState(false);
     const [manageError, setManageError] = useState('');
+    const [activeGem, setActiveGem] = useState<Gem | null>(null);
+
+    const handleSelectGem = (gem: Gem | null) => {
+        setActiveGem(gem);
+        onViewChange('server');
+    };
+
+    const handleQuery = (msg: string) => {
+        return queryLLM(msg, activeGem?.instructions);
+    };
 
     const addLog = (msg: string) => setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
     // Fetch cached models when switching to manage tab
     useEffect(() => {
-        if (view === 'manage') {
+        if (currentView === 'manage') {
             loadModels();
         }
-    }, [view]);
+    }, [currentView]);
 
     const loadModels = async () => {
         setLoadingModels(true);
@@ -45,7 +63,7 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
 
     const handleDeleteModel = async (path: string) => {
         if (!confirm('Are you sure you want to delete this cached model? This action cannot be undone.')) return;
-        
+
         setLoadingModels(true);
         const res = await deleteCachedModel(credentials, path);
         if (res.success) {
@@ -134,33 +152,11 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 shadow-sm min-h-[500px]">
-            {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200">
-                <button
-                    onClick={() => setView('server')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                        view === 'server'
-                            ? 'text-crimson border-b-2 border-crimson'
-                            : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                    Server Control
-                </button>
-                <button
-                    onClick={() => setView('manage')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                        view === 'manage'
-                            ? 'text-crimson border-b-2 border-crimson'
-                            : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                    Manage LLMs
-                </button>
-            </div>
+        <div className="flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm min-h-[500px]">
+
 
             <div className="p-8 flex-1 flex flex-col items-center justify-center w-full">
-                {view === 'server' ? (
+                {currentView === 'server' && (
                     // Server Control View
                     <>
                         {status === 'idle' && (
@@ -205,7 +201,13 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
                                     </button>
                                 </div>
                                 <div className="flex-1 min-h-0">
-                                    <ChatInterface onQuery={queryLLM} onReset={resetLLMContext} />
+                                    {activeGem && (
+                                        <div className="bg-gradient-to-r from-crimson to-pink-600 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
+                                            <span className="font-bold flex items-center gap-2">Using Gem: {activeGem.name}</span>
+                                            <button onClick={() => setActiveGem(null)} className="text-xs bg-white/20 hover:bg-white/40 px-2 py-1 rounded">Clear Gem</button>
+                                        </div>
+                                    )}
+                                    <ChatInterface onQuery={handleQuery} onReset={resetLLMContext} />
                                 </div>
                             </div>
                         )}
@@ -239,22 +241,23 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
                             </div>
                         )}
                     </>
-                ) : (
+                )}
+                {currentView === 'manage' && (
                     // Manage LLMs View
                     <div className="w-full max-w-4xl h-full flex flex-col">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-900">Cached Models</h3>
-                            <button 
-                                onClick={loadModels} 
+                            <button
+                                onClick={loadModels}
                                 disabled={loadingModels}
                                 className="text-sm text-crimson hover:underline disabled:opacity-50"
                             >
                                 Refresh
                             </button>
                         </div>
-                        
+
                         {manageError && (
-                             <div className="text-red-500 bg-red-50 px-4 py-2 rounded border border-red-200 mb-4">
+                            <div className="text-red-500 bg-red-50 px-4 py-2 rounded border border-red-200 mb-4">
                                 Error: {manageError}
                             </div>
                         )}
@@ -289,7 +292,7 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
                                                     {model.size}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDeleteModel(model.path)}
                                                         className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition-colors"
                                                     >
@@ -307,10 +310,21 @@ export default function LLMManager({ credentials }: LLMManagerProps) {
                         </div>
                     </div>
                 )}
+
+                {currentView === 'gems' && (
+                    <GemManager credentials={credentials} onSelectGem={handleSelectGem} initialGems={initialGems} onRefresh={onRefresh} />
+                )}
             </div>
         </div>
     );
 }
+
+
+
+
+
+
+
 
 
 
